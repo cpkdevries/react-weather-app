@@ -19422,9 +19422,17 @@ var ExtendedForecastItem = React.createClass({
   displayName: "ExtendedForecastItem",
 
   render: function () {
+    var twoTimes = {
+      fontSize: "200%"
+    };
+    var listStyle = {
+      margin: "15px 0",
+      borderBottom: "1px solid #d3d3d3",
+      paddingBottom: 8
+    };
     return React.createElement(
-      "div",
-      { className: "extendedForecastItem" },
+      "li",
+      { style: listStyle, className: "extendedForecastItem" },
       React.createElement(
         "div",
         { className: "row" },
@@ -19436,7 +19444,7 @@ var ExtendedForecastItem = React.createClass({
         React.createElement(
           "div",
           { className: "col-xs-4 text-center" },
-          React.createElement("img", { src: this.props.icon, alt: "Weather icon" })
+          React.createElement("i", { style: twoTimes, className: this.props.icon })
         ),
         React.createElement(
           "div",
@@ -19485,19 +19493,30 @@ var ForecastPanel = React.createClass({
         borderRadius: 0,
         padding: 20
       };
+      var noList = {
+        listStyleType: "none",
+        padding: 0
+      };
+      var panelBodyStyle = {
+        padding: "0 15px",
+        marginBottom: 0
+      };
+      var panelStyle = {
+        marginTop: 20
+      };
       var location = this.state.currentWeather.name + ", " + this.state.currentWeather.sys.country;
       var todaysDate = h.formatDate(new Date(this.state.currentWeather.dt * 1000));
       var tempInCelsius = Math.round(this.state.currentWeather.main.temp);
       var lowInCelsius = Math.round(this.state.forecast.list[0].temp.min);
       var highInCelsius = Math.round(this.state.forecast.list[0].temp.max);
       var windSpeed = h.convertToKmH(this.state.currentWeather.wind.speed);
-      var weatherIcon = "http://openweathermap.org/img/w/" + this.state.currentWeather.weather[0].icon + ".png";
+      var weatherIcon = h.getWeatherIcon(this.state.currentWeather.weather[0].icon);
       console.log(this.state.forecast.list.length);
       var extendedForecastItems = this.state.forecast.list.map(function (item, key) {
         // skip today!
         if (item.dt.toString().substring(0, 5) != Math.floor(Date.now() / 1000).toString().substring(0, 5)) {
           var date = h.formatDate(new Date(item.dt * 1000));
-          var icon = "http://openweathermap.org/img/w/" + item.weather[0].icon + ".png";
+          var icon = h.getWeatherIcon(item.weather[0].icon);
           return React.createElement(ExtendedForecastItem, {
             key: key,
             low: Math.round(item.temp.min),
@@ -19515,7 +19534,7 @@ var ForecastPanel = React.createClass({
           { className: 'col-sm-4 col-sm-offset-4' },
           React.createElement(
             'div',
-            { className: 'panel panel-default' },
+            { className: 'panel panel-default', style: panelStyle },
             React.createElement(
               'div',
               { className: 'panel panel-header', style: panelHeader },
@@ -19523,8 +19542,12 @@ var ForecastPanel = React.createClass({
             ),
             React.createElement(
               'div',
-              { className: 'panel panel-body' },
-              extendedForecastItems
+              { className: 'panel panel-body', style: panelBodyStyle },
+              React.createElement(
+                'ul',
+                { style: noList },
+                extendedForecastItems
+              )
             )
           )
         )
@@ -19548,9 +19571,22 @@ var TodaysWeather = React.createClass({
   displayName: "TodaysWeather",
 
   render: function () {
+    var large = {
+      fontSize: "600%",
+      padding: 20
+    };
+    var todaysWeatherStyles = {
+      color: "#fff"
+    };
+    var medium = {
+      fontSize: "200%"
+    };
+    var tempLarge = {
+      fontSize: "500%"
+    };
     return React.createElement(
       "div",
-      { className: "todaysWeather" },
+      { className: "todaysWeather", style: todaysWeatherStyles },
       React.createElement(
         "div",
         { className: "row" },
@@ -19563,7 +19599,7 @@ var TodaysWeather = React.createClass({
             this.props.location
           ),
           React.createElement(
-            "h4",
+            "h5",
             null,
             this.props.date
           )
@@ -19584,22 +19620,23 @@ var TodaysWeather = React.createClass({
         React.createElement(
           "div",
           { className: "col-xs-6" },
-          React.createElement("img", { src: this.props.icon, alt: "Current Weather Icon", width: "100" })
+          React.createElement("i", { className: this.props.icon, style: large })
         ),
         React.createElement(
           "div",
           { className: "col-xs-6" },
           React.createElement(
             "h1",
-            null,
+            { style: tempLarge },
             this.props.temperature,
             "°C"
           ),
           React.createElement(
             "p",
             null,
+            "Lo: ",
             this.props.lowTemperature,
-            "°C/",
+            "°C / Hi: ",
             this.props.highTemperature,
             "°C"
           )
@@ -19611,20 +19648,16 @@ var TodaysWeather = React.createClass({
         React.createElement(
           "div",
           { className: "col-xs-6" },
-          React.createElement(
-            "p",
-            null,
-            this.props.windDirection
-          )
+          React.createElement("i", { className: "wi wi-wind-direction", style: medium }),
+          " ",
+          this.props.windDirection
         ),
         React.createElement(
           "div",
           { className: "col-xs-6" },
-          React.createElement(
-            "p",
-            null,
-            this.props.windSpeed
-          )
+          React.createElement("i", { className: "wi wi-strong-wind", style: medium }),
+          " ",
+          this.props.windSpeed
         )
       )
     );
@@ -19657,12 +19690,35 @@ var h = {
     return months[month] + " " + date.getDate();
   },
   getWindDirection: function (angle) {
-    var directions = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
+    var directions = ["NORTH", "NORTH-NORTHEAST", "NORTHEAST", "EAST-NORTHEAST", "EAST", "EAST-SOUTHEAST", "SOUTHEAST", "SOUTH-SOUTHEAST", "SOUTH", "SOUTH-SOUTHWEST", "SOUTHWEST", "WEST-SOUTHWEST", "WEST", "WEST-NORTHWEST", "NORTHWEST", "NORTH-NORTHWEST"];
     var index = Math.floor(angle / 22.5 + 0.5);
     return directions[index];
   },
   convertToKmH: function (speed) {
     return (speed * 3.6).toFixed(1) + "km/h";
+  },
+  getWeatherIcon: function (image) {
+    var iconClasses = {
+      "01n": "wi wi-night-clear",
+      "01d": "wi wi-day-sunny",
+      "02n": "wi wi-night-alt-cloudy",
+      "02d": "wi wi-day-cloudy",
+      "03n": "wi wi-night-cloudy",
+      "03d": "wi wi-cloud",
+      "04n": "wi wi-night-cloudy-high",
+      "04d": "wi wi-cloudy",
+      "09n": "wi wi-night-alt-rain",
+      "09d": "wi wi-day-showers",
+      "10n": "wi wi-night-sprinkle",
+      "10d": "wi wi-rain",
+      "11n": "wi wi-night-alt-lightning",
+      "11d": "wi wi-day-lightning",
+      "13n": "wi wi-night-alt-snow",
+      "13d": "wi wi-day-snow",
+      "50n": "wi wi-night-fog",
+      "50d": "wi wi-day-fog"
+    };
+    return iconClasses[image];
   }
 };
 

@@ -21,12 +21,35 @@ var h = {
     return months[month] + " " + date.getDate();
   },
   getWindDirection : function(angle) {
-    var directions = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
+    var directions = ["NORTH", "NORTH-NORTHEAST", "NORTHEAST", "EAST-NORTHEAST", "EAST", "EAST-SOUTHEAST", "SOUTHEAST", "SOUTH-SOUTHEAST", "SOUTH", "SOUTH-SOUTHWEST", "SOUTHWEST", "WEST-SOUTHWEST", "WEST", "WEST-NORTHWEST", "NORTHWEST", "NORTH-NORTHWEST"];
     var index = Math.floor(((angle/22.5) + 0.5));
     return directions[index];
   },
   convertToKmH : function(speed) {
     return (speed * 3.6).toFixed(1) + "km/h";
+  },
+  getWeatherIcon : function(image) {
+    var iconClasses = {
+      "01n": "wi wi-night-clear",
+      "01d": "wi wi-day-sunny",
+      "02n": "wi wi-night-alt-cloudy",
+      "02d": "wi wi-day-cloudy",
+      "03n": "wi wi-night-cloudy",
+      "03d": "wi wi-cloud",
+      "04n": "wi wi-night-cloudy-high",
+      "04d": "wi wi-cloudy",
+      "09n": "wi wi-night-alt-rain",
+      "09d": "wi wi-day-showers",
+      "10n": "wi wi-night-sprinkle",
+      "10d": "wi wi-rain",
+      "11n": "wi wi-night-alt-lightning",
+      "11d": "wi wi-day-lightning",
+      "13n": "wi wi-night-alt-snow",
+      "13d": "wi wi-day-snow",
+      "50n": "wi wi-night-fog",
+      "50d": "wi wi-day-fog"
+    }
+    return iconClasses[image];
   }
 }
 
