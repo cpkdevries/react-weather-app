@@ -15,7 +15,7 @@ var TodaysWeather = React.createClass({
         </div>
         <div className="row">
           <div className="col-xs-6">
-            <img src={this.props.icon} alt="Current Weather Icon" />
+            <img src={this.props.icon} alt="Current Weather Icon" width="100" />
           </div>
           <div className="col-xs-6">
             <h1>{this.props.temperature}&deg;C</h1>

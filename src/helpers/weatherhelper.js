@@ -5,20 +5,20 @@ var h = {
   formatDate : function(date) {
     var month = date.getMonth();
     var months = {
-      0: "Jan",
-      1: "Feb",
-      2: "Mar",
-      3: "Apr",
-      4: "May",
-      5: "Jun",
-      6: "Jul",
-      7: "Aug",
-      8: "Sep",
-      9: "Oct",
-      10: "Nov",
-      11: "Dec"
+      0: "Jan.",
+      1: "Feb.",
+      2: "Mar.",
+      3: "Apr.",
+      4: "May.",
+      5: "Jun.",
+      6: "Jul.",
+      7: "Aug.",
+      8: "Sep.",
+      9: "Oct.",
+      10: "Nov.",
+      11: "Dec."
     }
-    return months[month] + " " + date.getDay();
+    return months[month] + " " + date.getDate();
   },
   getWindDirection : function(angle) {
     var directions = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];

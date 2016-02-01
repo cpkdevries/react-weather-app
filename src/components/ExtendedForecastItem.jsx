@@ -5,13 +5,13 @@ var ExtendedForecastItem = React.createClass({
     return (
       <div className="extendedForecastItem">
         <div className="row">
-          <div className="col-xs-5">
+          <div className="col-xs-4">
             {this.props.date}
           </div>
-          <div className="col-xs-2 text-center">
-            <img src={this.props.icon} alt="asdf" />
+          <div className="col-xs-4 text-center">
+            <img src={this.props.icon} alt="Weather icon" />
           </div>
-          <div className="col-xs-5 text-right">
+          <div className="col-xs-4 text-right">
             {this.props.low}&deg;/{this.props.high}&deg;
           </div>
         </div>

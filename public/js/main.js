@@ -19430,17 +19430,17 @@ var ExtendedForecastItem = React.createClass({
         { className: "row" },
         React.createElement(
           "div",
-          { className: "col-xs-5" },
+          { className: "col-xs-4" },
           this.props.date
         ),
         React.createElement(
           "div",
-          { className: "col-xs-2 text-center" },
-          React.createElement("img", { src: this.props.icon, alt: "asdf" })
+          { className: "col-xs-4 text-center" },
+          React.createElement("img", { src: this.props.icon, alt: "Weather icon" })
         ),
         React.createElement(
           "div",
-          { className: "col-xs-5 text-right" },
+          { className: "col-xs-4 text-right" },
           this.props.low,
           "°/",
           this.props.high,
@@ -19464,25 +19464,71 @@ var ForecastPanel = React.createClass({
   displayName: 'ForecastPanel',
 
   getInitialState: function () {
-    return { forecast: [] };
+    return { forecast: [], currentWeather: [] };
   },
   componentWillMount: function () {
+    // get current weather
+    weatherService.get("/data/2.5/weather?q=London,CA&units=metric&format=json").then(function (data) {
+      this.setState({ currentWeather: data });
+    }.bind(this));
     // call weatherService's get() function, passing API url. API key is automatically appended within service function.
-    weatherService.get("/data/2.5/forecast?q=London,CA&units=metric&format=json").then(function (data) {
+    weatherService.get("/data/2.5/forecast/daily?q=London,CA&units=metric&format=json").then(function (data) {
       // set component's state to returned json.
       this.setState({ forecast: data });
     }.bind(this));
   },
   render: function () {
-    if (this.state.forecast.list) {
-      var location = this.state.forecast.city.name + ", " + this.state.forecast.city.country;
-      var todaysDate = h.formatDate(new Date(this.state.forecast.list[0].dt * 1000));
-      var tempInCelsius = Math.round(this.state.forecast.list[0].main.temp);
-      var lowInCelsius = Math.round(this.state.forecast.list[0].main.temp_min);
-      var highInCelsius = Math.round(this.state.forecast.list[0].main.temp_max);
-      var windSpeed = h.convertToKmH(this.state.forecast.list[0].wind.speed);
-      var weatherIcon = "http://openweathermap.org/img/w/" + this.state.forecast.list[0].weather[0].icon + ".png";
-      return React.createElement(TodaysWeather, { location: location, date: todaysDate, temperature: tempInCelsius, lowTemperature: lowInCelsius, highTemperature: highInCelsius, windDirection: h.getWindDirection(this.state.forecast.list[0].wind.deg), windSpeed: windSpeed, icon: weatherIcon });
+    if (this.state.currentWeather.main && this.state.forecast.list) {
+      // styles
+      var panelHeader = {
+        background: "#ec4444",
+        borderRadius: 0,
+        padding: 20
+      };
+      var location = this.state.currentWeather.name + ", " + this.state.currentWeather.sys.country;
+      var todaysDate = h.formatDate(new Date(this.state.currentWeather.dt * 1000));
+      var tempInCelsius = Math.round(this.state.currentWeather.main.temp);
+      var lowInCelsius = Math.round(this.state.forecast.list[0].temp.min);
+      var highInCelsius = Math.round(this.state.forecast.list[0].temp.max);
+      var windSpeed = h.convertToKmH(this.state.currentWeather.wind.speed);
+      var weatherIcon = "http://openweathermap.org/img/w/" + this.state.currentWeather.weather[0].icon + ".png";
+      console.log(this.state.forecast.list.length);
+      var extendedForecastItems = this.state.forecast.list.map(function (item, key) {
+        // skip today!
+        if (item.dt.toString().substring(0, 5) != Math.floor(Date.now() / 1000).toString().substring(0, 5)) {
+          var date = h.formatDate(new Date(item.dt * 1000));
+          var icon = "http://openweathermap.org/img/w/" + item.weather[0].icon + ".png";
+          return React.createElement(ExtendedForecastItem, {
+            key: key,
+            low: Math.round(item.temp.min),
+            high: Math.round(item.temp.max),
+            icon: icon,
+            date: date
+          });
+        }
+      });
+      return React.createElement(
+        'div',
+        { className: 'row' },
+        React.createElement(
+          'div',
+          { className: 'col-sm-4 col-sm-offset-4' },
+          React.createElement(
+            'div',
+            { className: 'panel panel-default' },
+            React.createElement(
+              'div',
+              { className: 'panel panel-header', style: panelHeader },
+              React.createElement(TodaysWeather, { location: location, date: todaysDate, temperature: tempInCelsius, lowTemperature: lowInCelsius, highTemperature: highInCelsius, windDirection: h.getWindDirection(this.state.currentWeather.wind.deg), windSpeed: windSpeed, icon: weatherIcon })
+            ),
+            React.createElement(
+              'div',
+              { className: 'panel panel-body' },
+              extendedForecastItems
+            )
+          )
+        )
+      );
     } else {
       return React.createElement(
         'h1',
@@ -19538,7 +19584,7 @@ var TodaysWeather = React.createClass({
         React.createElement(
           "div",
           { className: "col-xs-6" },
-          React.createElement("img", { src: this.props.icon, alt: "Current Weather Icon" })
+          React.createElement("img", { src: this.props.icon, alt: "Current Weather Icon", width: "100" })
         ),
         React.createElement(
           "div",
@@ -19595,20 +19641,20 @@ var h = {
   formatDate: function (date) {
     var month = date.getMonth();
     var months = {
-      0: "Jan",
-      1: "Feb",
-      2: "Mar",
-      3: "Apr",
-      4: "May",
-      5: "Jun",
-      6: "Jul",
-      7: "Aug",
-      8: "Sep",
-      9: "Oct",
-      10: "Nov",
-      11: "Dec"
+      0: "Jan.",
+      1: "Feb.",
+      2: "Mar.",
+      3: "Apr.",
+      4: "May.",
+      5: "Jun.",
+      6: "Jul.",
+      7: "Aug.",
+      8: "Sep.",
+      9: "Oct.",
+      10: "Nov.",
+      11: "Dec."
     };
-    return months[month] + " " + date.getDay();
+    return months[month] + " " + date.getDate();
   },
   getWindDirection: function (angle) {
     var directions = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
