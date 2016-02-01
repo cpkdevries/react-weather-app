@@ -19025,7 +19025,627 @@ module.exports = validateDOMNesting;
 module.exports = require('./lib/React');
 
 },{"./lib/React":53}],159:[function(require,module,exports){
+(function(self) {
+  'use strict';
+
+  if (self.fetch) {
+    return
+  }
+
+  function normalizeName(name) {
+    if (typeof name !== 'string') {
+      name = String(name)
+    }
+    if (/[^a-z0-9\-#$%&'*+.\^_`|~]/i.test(name)) {
+      throw new TypeError('Invalid character in header field name')
+    }
+    return name.toLowerCase()
+  }
+
+  function normalizeValue(value) {
+    if (typeof value !== 'string') {
+      value = String(value)
+    }
+    return value
+  }
+
+  function Headers(headers) {
+    this.map = {}
+
+    if (headers instanceof Headers) {
+      headers.forEach(function(value, name) {
+        this.append(name, value)
+      }, this)
+
+    } else if (headers) {
+      Object.getOwnPropertyNames(headers).forEach(function(name) {
+        this.append(name, headers[name])
+      }, this)
+    }
+  }
+
+  Headers.prototype.append = function(name, value) {
+    name = normalizeName(name)
+    value = normalizeValue(value)
+    var list = this.map[name]
+    if (!list) {
+      list = []
+      this.map[name] = list
+    }
+    list.push(value)
+  }
+
+  Headers.prototype['delete'] = function(name) {
+    delete this.map[normalizeName(name)]
+  }
+
+  Headers.prototype.get = function(name) {
+    var values = this.map[normalizeName(name)]
+    return values ? values[0] : null
+  }
+
+  Headers.prototype.getAll = function(name) {
+    return this.map[normalizeName(name)] || []
+  }
+
+  Headers.prototype.has = function(name) {
+    return this.map.hasOwnProperty(normalizeName(name))
+  }
+
+  Headers.prototype.set = function(name, value) {
+    this.map[normalizeName(name)] = [normalizeValue(value)]
+  }
+
+  Headers.prototype.forEach = function(callback, thisArg) {
+    Object.getOwnPropertyNames(this.map).forEach(function(name) {
+      this.map[name].forEach(function(value) {
+        callback.call(thisArg, value, name, this)
+      }, this)
+    }, this)
+  }
+
+  function consumed(body) {
+    if (body.bodyUsed) {
+      return Promise.reject(new TypeError('Already read'))
+    }
+    body.bodyUsed = true
+  }
+
+  function fileReaderReady(reader) {
+    return new Promise(function(resolve, reject) {
+      reader.onload = function() {
+        resolve(reader.result)
+      }
+      reader.onerror = function() {
+        reject(reader.error)
+      }
+    })
+  }
+
+  function readBlobAsArrayBuffer(blob) {
+    var reader = new FileReader()
+    reader.readAsArrayBuffer(blob)
+    return fileReaderReady(reader)
+  }
+
+  function readBlobAsText(blob) {
+    var reader = new FileReader()
+    reader.readAsText(blob)
+    return fileReaderReady(reader)
+  }
+
+  var support = {
+    blob: 'FileReader' in self && 'Blob' in self && (function() {
+      try {
+        new Blob();
+        return true
+      } catch(e) {
+        return false
+      }
+    })(),
+    formData: 'FormData' in self,
+    arrayBuffer: 'ArrayBuffer' in self
+  }
+
+  function Body() {
+    this.bodyUsed = false
+
+
+    this._initBody = function(body) {
+      this._bodyInit = body
+      if (typeof body === 'string') {
+        this._bodyText = body
+      } else if (support.blob && Blob.prototype.isPrototypeOf(body)) {
+        this._bodyBlob = body
+      } else if (support.formData && FormData.prototype.isPrototypeOf(body)) {
+        this._bodyFormData = body
+      } else if (!body) {
+        this._bodyText = ''
+      } else if (support.arrayBuffer && ArrayBuffer.prototype.isPrototypeOf(body)) {
+        // Only support ArrayBuffers for POST method.
+        // Receiving ArrayBuffers happens via Blobs, instead.
+      } else {
+        throw new Error('unsupported BodyInit type')
+      }
+
+      if (!this.headers.get('content-type')) {
+        if (typeof body === 'string') {
+          this.headers.set('content-type', 'text/plain;charset=UTF-8')
+        } else if (this._bodyBlob && this._bodyBlob.type) {
+          this.headers.set('content-type', this._bodyBlob.type)
+        }
+      }
+    }
+
+    if (support.blob) {
+      this.blob = function() {
+        var rejected = consumed(this)
+        if (rejected) {
+          return rejected
+        }
+
+        if (this._bodyBlob) {
+          return Promise.resolve(this._bodyBlob)
+        } else if (this._bodyFormData) {
+          throw new Error('could not read FormData body as blob')
+        } else {
+          return Promise.resolve(new Blob([this._bodyText]))
+        }
+      }
+
+      this.arrayBuffer = function() {
+        return this.blob().then(readBlobAsArrayBuffer)
+      }
+
+      this.text = function() {
+        var rejected = consumed(this)
+        if (rejected) {
+          return rejected
+        }
+
+        if (this._bodyBlob) {
+          return readBlobAsText(this._bodyBlob)
+        } else if (this._bodyFormData) {
+          throw new Error('could not read FormData body as text')
+        } else {
+          return Promise.resolve(this._bodyText)
+        }
+      }
+    } else {
+      this.text = function() {
+        var rejected = consumed(this)
+        return rejected ? rejected : Promise.resolve(this._bodyText)
+      }
+    }
+
+    if (support.formData) {
+      this.formData = function() {
+        return this.text().then(decode)
+      }
+    }
+
+    this.json = function() {
+      return this.text().then(JSON.parse)
+    }
+
+    return this
+  }
+
+  // HTTP methods whose capitalization should be normalized
+  var methods = ['DELETE', 'GET', 'HEAD', 'OPTIONS', 'POST', 'PUT']
+
+  function normalizeMethod(method) {
+    var upcased = method.toUpperCase()
+    return (methods.indexOf(upcased) > -1) ? upcased : method
+  }
+
+  function Request(input, options) {
+    options = options || {}
+    var body = options.body
+    if (Request.prototype.isPrototypeOf(input)) {
+      if (input.bodyUsed) {
+        throw new TypeError('Already read')
+      }
+      this.url = input.url
+      this.credentials = input.credentials
+      if (!options.headers) {
+        this.headers = new Headers(input.headers)
+      }
+      this.method = input.method
+      this.mode = input.mode
+      if (!body) {
+        body = input._bodyInit
+        input.bodyUsed = true
+      }
+    } else {
+      this.url = input
+    }
+
+    this.credentials = options.credentials || this.credentials || 'omit'
+    if (options.headers || !this.headers) {
+      this.headers = new Headers(options.headers)
+    }
+    this.method = normalizeMethod(options.method || this.method || 'GET')
+    this.mode = options.mode || this.mode || null
+    this.referrer = null
+
+    if ((this.method === 'GET' || this.method === 'HEAD') && body) {
+      throw new TypeError('Body not allowed for GET or HEAD requests')
+    }
+    this._initBody(body)
+  }
+
+  Request.prototype.clone = function() {
+    return new Request(this)
+  }
+
+  function decode(body) {
+    var form = new FormData()
+    body.trim().split('&').forEach(function(bytes) {
+      if (bytes) {
+        var split = bytes.split('=')
+        var name = split.shift().replace(/\+/g, ' ')
+        var value = split.join('=').replace(/\+/g, ' ')
+        form.append(decodeURIComponent(name), decodeURIComponent(value))
+      }
+    })
+    return form
+  }
+
+  function headers(xhr) {
+    var head = new Headers()
+    var pairs = xhr.getAllResponseHeaders().trim().split('\n')
+    pairs.forEach(function(header) {
+      var split = header.trim().split(':')
+      var key = split.shift().trim()
+      var value = split.join(':').trim()
+      head.append(key, value)
+    })
+    return head
+  }
+
+  Body.call(Request.prototype)
+
+  function Response(bodyInit, options) {
+    if (!options) {
+      options = {}
+    }
+
+    this.type = 'default'
+    this.status = options.status
+    this.ok = this.status >= 200 && this.status < 300
+    this.statusText = options.statusText
+    this.headers = options.headers instanceof Headers ? options.headers : new Headers(options.headers)
+    this.url = options.url || ''
+    this._initBody(bodyInit)
+  }
+
+  Body.call(Response.prototype)
+
+  Response.prototype.clone = function() {
+    return new Response(this._bodyInit, {
+      status: this.status,
+      statusText: this.statusText,
+      headers: new Headers(this.headers),
+      url: this.url
+    })
+  }
+
+  Response.error = function() {
+    var response = new Response(null, {status: 0, statusText: ''})
+    response.type = 'error'
+    return response
+  }
+
+  var redirectStatuses = [301, 302, 303, 307, 308]
+
+  Response.redirect = function(url, status) {
+    if (redirectStatuses.indexOf(status) === -1) {
+      throw new RangeError('Invalid status code')
+    }
+
+    return new Response(null, {status: status, headers: {location: url}})
+  }
+
+  self.Headers = Headers;
+  self.Request = Request;
+  self.Response = Response;
+
+  self.fetch = function(input, init) {
+    return new Promise(function(resolve, reject) {
+      var request
+      if (Request.prototype.isPrototypeOf(input) && !init) {
+        request = input
+      } else {
+        request = new Request(input, init)
+      }
+
+      var xhr = new XMLHttpRequest()
+
+      function responseURL() {
+        if ('responseURL' in xhr) {
+          return xhr.responseURL
+        }
+
+        // Avoid security warnings on getResponseHeader when not allowed by CORS
+        if (/^X-Request-URL:/m.test(xhr.getAllResponseHeaders())) {
+          return xhr.getResponseHeader('X-Request-URL')
+        }
+
+        return;
+      }
+
+      xhr.onload = function() {
+        var status = (xhr.status === 1223) ? 204 : xhr.status
+        if (status < 100 || status > 599) {
+          reject(new TypeError('Network request failed'))
+          return
+        }
+        var options = {
+          status: status,
+          statusText: xhr.statusText,
+          headers: headers(xhr),
+          url: responseURL()
+        }
+        var body = 'response' in xhr ? xhr.response : xhr.responseText;
+        resolve(new Response(body, options))
+      }
+
+      xhr.onerror = function() {
+        reject(new TypeError('Network request failed'))
+      }
+
+      xhr.open(request.method, request.url, true)
+
+      if (request.credentials === 'include') {
+        xhr.withCredentials = true
+      }
+
+      if ('responseType' in xhr && support.blob) {
+        xhr.responseType = 'blob'
+      }
+
+      request.headers.forEach(function(value, name) {
+        xhr.setRequestHeader(name, value)
+      })
+
+      xhr.send(typeof request._bodyInit === 'undefined' ? null : request._bodyInit)
+    })
+  }
+  self.fetch.polyfill = true
+})(typeof self !== 'undefined' ? self : this);
+
+},{}],160:[function(require,module,exports){
+var React = require('react');
+
+var ExtendedForecastItem = React.createClass({
+  displayName: "ExtendedForecastItem",
+
+  render: function () {
+    return React.createElement(
+      "div",
+      { className: "extendedForecastItem" },
+      React.createElement(
+        "div",
+        { className: "row" },
+        React.createElement(
+          "div",
+          { className: "col-xs-5" },
+          this.props.date
+        ),
+        React.createElement(
+          "div",
+          { className: "col-xs-2 text-center" },
+          React.createElement("img", { src: this.props.icon, alt: "asdf" })
+        ),
+        React.createElement(
+          "div",
+          { className: "col-xs-5 text-right" },
+          this.props.low,
+          "°/",
+          this.props.high,
+          "°"
+        )
+      )
+    );
+  }
+});
+
+module.exports = ExtendedForecastItem;
+
+},{"react":158}],161:[function(require,module,exports){
+var React = require('react');
+var TodaysWeather = require('./TodaysWeather.jsx');
+var ExtendedForecastItem = require('./ExtendedForecastItem.jsx');
+var h = require('../helpers/weatherhelper');
+var weatherService = require('../services/weatherhttpservice');
+
+var ForecastPanel = React.createClass({
+  displayName: 'ForecastPanel',
+
+  getInitialState: function () {
+    return { forecast: [] };
+  },
+  componentWillMount: function () {
+    // call weatherService's get() function, passing API url. API key is automatically appended within service function.
+    weatherService.get("/data/2.5/forecast?q=London,CA&units=metric&format=json").then(function (data) {
+      // set component's state to returned json.
+      this.setState({ forecast: data });
+    }.bind(this));
+  },
+  render: function () {
+    if (this.state.forecast.list) {
+      var location = this.state.forecast.city.name + ", " + this.state.forecast.city.country;
+      var todaysDate = h.formatDate(new Date(this.state.forecast.list[0].dt * 1000));
+      var tempInCelsius = Math.round(this.state.forecast.list[0].main.temp);
+      var lowInCelsius = Math.round(this.state.forecast.list[0].main.temp_min);
+      var highInCelsius = Math.round(this.state.forecast.list[0].main.temp_max);
+      var windSpeed = h.convertToKmH(this.state.forecast.list[0].wind.speed);
+      var weatherIcon = "http://openweathermap.org/img/w/" + this.state.forecast.list[0].weather[0].icon + ".png";
+      return React.createElement(TodaysWeather, { location: location, date: todaysDate, temperature: tempInCelsius, lowTemperature: lowInCelsius, highTemperature: highInCelsius, windDirection: h.getWindDirection(this.state.forecast.list[0].wind.deg), windSpeed: windSpeed, icon: weatherIcon });
+    } else {
+      return React.createElement(
+        'h1',
+        null,
+        'Loading...'
+      );
+    }
+  }
+});
+
+module.exports = ForecastPanel;
+
+},{"../helpers/weatherhelper":163,"../services/weatherhttpservice":165,"./ExtendedForecastItem.jsx":160,"./TodaysWeather.jsx":162,"react":158}],162:[function(require,module,exports){
+var React = require('react');
+
+var TodaysWeather = React.createClass({
+  displayName: "TodaysWeather",
+
+  render: function () {
+    return React.createElement(
+      "div",
+      { className: "todaysWeather" },
+      React.createElement(
+        "div",
+        { className: "row" },
+        React.createElement(
+          "div",
+          { className: "col-xs-8" },
+          React.createElement(
+            "h4",
+            null,
+            this.props.location
+          ),
+          React.createElement(
+            "h4",
+            null,
+            this.props.date
+          )
+        ),
+        React.createElement(
+          "div",
+          { className: "col-xs-4" },
+          React.createElement(
+            "p",
+            null,
+            "Search box?"
+          )
+        )
+      ),
+      React.createElement(
+        "div",
+        { className: "row" },
+        React.createElement(
+          "div",
+          { className: "col-xs-6" },
+          React.createElement("img", { src: this.props.icon, alt: "Current Weather Icon" })
+        ),
+        React.createElement(
+          "div",
+          { className: "col-xs-6" },
+          React.createElement(
+            "h1",
+            null,
+            this.props.temperature,
+            "°C"
+          ),
+          React.createElement(
+            "p",
+            null,
+            this.props.lowTemperature,
+            "°C/",
+            this.props.highTemperature,
+            "°C"
+          )
+        )
+      ),
+      React.createElement(
+        "div",
+        { className: "row" },
+        React.createElement(
+          "div",
+          { className: "col-xs-6" },
+          React.createElement(
+            "p",
+            null,
+            this.props.windDirection
+          )
+        ),
+        React.createElement(
+          "div",
+          { className: "col-xs-6" },
+          React.createElement(
+            "p",
+            null,
+            this.props.windSpeed
+          )
+        )
+      )
+    );
+  }
+});
+
+module.exports = TodaysWeather;
+
+},{"react":158}],163:[function(require,module,exports){
+var h = {
+  convertToCelsius: function (tempKelvin) {
+    return Math.round(tempKelvin - 273.15);
+  },
+  formatDate: function (date) {
+    var month = date.getMonth();
+    var months = {
+      0: "Jan",
+      1: "Feb",
+      2: "Mar",
+      3: "Apr",
+      4: "May",
+      5: "Jun",
+      6: "Jul",
+      7: "Aug",
+      8: "Sep",
+      9: "Oct",
+      10: "Nov",
+      11: "Dec"
+    };
+    return months[month] + " " + date.getDay();
+  },
+  getWindDirection: function (angle) {
+    var directions = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
+    var index = Math.floor(angle / 22.5 + 0.5);
+    return directions[index];
+  },
+  convertToKmH: function (speed) {
+    return (speed * 3.6).toFixed(1) + "km/h";
+  }
+};
+
+module.exports = h;
+
+},{}],164:[function(require,module,exports){
 var React = require('react');
 var ReactDOM = require('react-dom');
+var ForecastPanel = require('./components/ForecastPanel.jsx');
 
-},{"react":158,"react-dom":29}]},{},[159]);
+ReactDOM.render(React.createElement(ForecastPanel, null), document.getElementById('main'));
+
+},{"./components/ForecastPanel.jsx":161,"react":158,"react-dom":29}],165:[function(require,module,exports){
+// Use Fetch http service
+var Fetch = require('whatwg-fetch');
+var baseUrl = "http://api.openweathermap.org"; // set base url for API
+var apiKey = "&APPID=1a17cc17d46d39511c9bfe7f87d20188"; // set API key (required to make API calls to openweathermap)
+
+var weatherService = {
+  get: function (url) {
+    // weatherService.get(url) takes in URL and returns the response in json format.
+    return fetch(baseUrl + url + apiKey) // call external API
+    .then(function (response) {
+      return response.json();
+    });
+  }
+};
+
+// export so that it can be used externally
+module.exports = weatherService;
+
+},{"whatwg-fetch":159}]},{},[164]);

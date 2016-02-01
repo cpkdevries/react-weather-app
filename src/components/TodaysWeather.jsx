@@ -15,18 +15,19 @@ var TodaysWeather = React.createClass({
         </div>
         <div className="row">
           <div className="col-xs-6">
-            <img src="http://www.iconarchive.com/download/i43438/oxygen-icons.org/oxygen/Status-weather-clear.ico" alt="weather icon" />
+            <img src={this.props.icon} alt="Current Weather Icon" />
           </div>
           <div className="col-xs-6">
             <h1>{this.props.temperature}&deg;C</h1>
+            <p>{this.props.lowTemperature}&deg;C/{this.props.highTemperature}&deg;C</p>
           </div>
         </div>
         <div className="row">
           <div className="col-xs-6">
-            <p>Wind direction</p>
+            <p>{this.props.windDirection}</p>
           </div>
           <div className="col-xs-6">
-            <p>Wind speed</p>
+            <p>{this.props.windSpeed}</p>
           </div>
         </div>
       </div>
