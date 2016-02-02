@@ -19474,13 +19474,19 @@ var ForecastPanel = React.createClass({
   getInitialState: function () {
     return { forecast: [], currentWeather: [] };
   },
+  handleSearch: function (newLocation) {
+    this.callWeatherService(newLocation);
+  },
   componentWillMount: function () {
+    this.callWeatherService("London,CA");
+  },
+  callWeatherService: function (location) {
     // get current weather
-    weatherService.get("/data/2.5/weather?q=London,CA&units=metric&format=json").then(function (data) {
+    weatherService.get("/data/2.5/weather?q=" + location + "&units=metric&format=json").then(function (data) {
       this.setState({ currentWeather: data });
     }.bind(this));
     // call weatherService's get() function, passing API url. API key is automatically appended within service function.
-    weatherService.get("/data/2.5/forecast/daily?q=London,CA&units=metric&format=json").then(function (data) {
+    weatherService.get("/data/2.5/forecast/daily?q=" + location + "&units=metric&format=json").then(function (data) {
       // set component's state to returned json.
       this.setState({ forecast: data });
     }.bind(this));
@@ -19511,7 +19517,6 @@ var ForecastPanel = React.createClass({
       var highInCelsius = Math.round(this.state.forecast.list[0].temp.max);
       var windSpeed = h.convertToKmH(this.state.currentWeather.wind.speed);
       var weatherIcon = h.getWeatherIcon(this.state.currentWeather.weather[0].icon);
-      console.log(this.state.forecast.list.length);
       var extendedForecastItems = this.state.forecast.list.map(function (item, key) {
         // skip today!
         if (item.dt.toString().substring(0, 5) != Math.floor(Date.now() / 1000).toString().substring(0, 5)) {
@@ -19538,7 +19543,7 @@ var ForecastPanel = React.createClass({
             React.createElement(
               'div',
               { className: 'panel panel-header', style: panelHeader },
-              React.createElement(TodaysWeather, { location: location, date: todaysDate, temperature: tempInCelsius, lowTemperature: lowInCelsius, highTemperature: highInCelsius, windDirection: h.getWindDirection(this.state.currentWeather.wind.deg), windSpeed: windSpeed, icon: weatherIcon })
+              React.createElement(TodaysWeather, { location: location, date: todaysDate, temperature: tempInCelsius, lowTemperature: lowInCelsius, highTemperature: highInCelsius, windDirection: h.getWindDirection(this.state.currentWeather.wind.deg), windSpeed: windSpeed, icon: weatherIcon, newSearch: this.handleSearch })
             ),
             React.createElement(
               'div',
@@ -19570,6 +19575,21 @@ var React = require('react');
 var TodaysWeather = React.createClass({
   displayName: "TodaysWeather",
 
+  getInitialState: function () {
+    return { location: "" };
+  },
+  handleClick: function () {
+    if (this.props.newSearch) {
+      if (this.state.location.trim() != "") {
+        this.props.newSearch(this.state.location);
+        this.refs.searchTerm.value = "";
+        this.setState({ location: "" });
+      }
+    }
+  },
+  onChange: function (e) {
+    this.setState({ location: e.target.value });
+  },
   render: function () {
     var large = {
       fontSize: "600%",
@@ -19592,7 +19612,7 @@ var TodaysWeather = React.createClass({
         { className: "row" },
         React.createElement(
           "div",
-          { className: "col-xs-8" },
+          { className: "col-xs-6" },
           React.createElement(
             "h4",
             null,
@@ -19606,11 +19626,16 @@ var TodaysWeather = React.createClass({
         ),
         React.createElement(
           "div",
-          { className: "col-xs-4" },
+          { className: "col-xs-6" },
           React.createElement(
-            "p",
-            null,
-            "Search box?"
+            "div",
+            { className: "input-group" },
+            React.createElement("input", { type: "text", className: "form-control", placeholder: "City", onChange: this.onChange, ref: "searchTerm" }),
+            React.createElement(
+              "span",
+              { className: "input-group-addon", onClick: this.handleClick },
+              React.createElement("i", { className: "fa fa-search" })
+            )
           )
         )
       ),

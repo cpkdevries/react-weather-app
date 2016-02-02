@@ -8,14 +8,20 @@ var ForecastPanel = React.createClass({
   getInitialState : function() {
     return ({forecast: [], currentWeather: []});
   },
+  handleSearch : function(newLocation){
+    this.callWeatherService(newLocation);
+  },
   componentWillMount : function() {
+    this.callWeatherService("London,CA");
+  },
+  callWeatherService : function(location) {
     // get current weather
-    weatherService.get("/data/2.5/weather?q=London,CA&units=metric&format=json")
+    weatherService.get("/data/2.5/weather?q=" + location + "&units=metric&format=json")
     .then(function(data) {
       this.setState({currentWeather: data});
     }.bind(this));
     // call weatherService's get() function, passing API url. API key is automatically appended within service function.
-    weatherService.get("/data/2.5/forecast/daily?q=London,CA&units=metric&format=json")
+    weatherService.get("/data/2.5/forecast/daily?q=" + location + "&units=metric&format=json")
     .then(function(data) {
       // set component's state to returned json.
       this.setState({forecast: data});
@@ -47,7 +53,6 @@ var ForecastPanel = React.createClass({
       var highInCelsius = Math.round(this.state.forecast.list[0].temp.max);
       var windSpeed = h.convertToKmH(this.state.currentWeather.wind.speed);
       var weatherIcon = h.getWeatherIcon(this.state.currentWeather.weather[0].icon);
-      console.log(this.state.forecast.list.length);
       var extendedForecastItems = this.state.forecast.list.map(function(item, key){
         // skip today!
         if((item.dt).toString().substring(0, 5) != (Math.floor(Date.now()/1000)).toString().substring(0, 5)) {
@@ -69,7 +74,7 @@ var ForecastPanel = React.createClass({
           <div className="col-sm-4 col-sm-offset-4">
             <div className="panel panel-default" style={panelStyle}>
               <div className="panel panel-header" style={panelHeader}>
-                <TodaysWeather location={location} date={todaysDate} temperature={tempInCelsius} lowTemperature={lowInCelsius} highTemperature={highInCelsius} windDirection={h.getWindDirection(this.state.currentWeather.wind.deg)} windSpeed={windSpeed} icon={weatherIcon} />
+                <TodaysWeather location={location} date={todaysDate} temperature={tempInCelsius} lowTemperature={lowInCelsius} highTemperature={highInCelsius} windDirection={h.getWindDirection(this.state.currentWeather.wind.deg)} windSpeed={windSpeed} icon={weatherIcon} newSearch={this.handleSearch} />
               </div>
               <div className="panel panel-body" style={panelBodyStyle}>
                 <ul style={noList}>{extendedForecastItems}</ul>
@@ -77,8 +82,7 @@ var ForecastPanel = React.createClass({
             </div>
           </div>
         </div>
-
-      )
+      );
     } else {
       return (
         <h1>Loading...</h1>

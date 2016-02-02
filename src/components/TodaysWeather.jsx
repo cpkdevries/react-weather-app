@@ -1,6 +1,22 @@
 var React = require('react');
 
 var TodaysWeather = React.createClass({
+  getInitialState : function() {
+    return({location: ""});
+  },
+  handleClick : function(){
+    if(this.props.newSearch) {
+      if(this.state.location.trim() != "") {
+        this.props.newSearch(this.state.location);
+        this.refs.searchTerm.value = "";
+        this.setState({location: ""})
+      }
+    }
+
+  },
+  onChange : function(e) {
+    this.setState({location: e.target.value});
+  },
   render : function() {
     var large = {
       fontSize: "600%",
@@ -18,12 +34,15 @@ var TodaysWeather = React.createClass({
     return (
       <div className="todaysWeather" style={todaysWeatherStyles}>
         <div className="row">
-          <div className="col-xs-8">
+          <div className="col-xs-6">
             <h4>{this.props.location}</h4>
             <h5>{this.props.date}</h5>
           </div>
-          <div className="col-xs-4">
-            <p>Search box?</p>
+          <div className="col-xs-6">
+            <div className="input-group">
+              <input type="text" className="form-control" placeholder="City" onChange={this.onChange} ref="searchTerm" />
+              <span className="input-group-addon" onClick={this.handleClick}><i className="fa fa-search"></i></span>
+            </div>
           </div>
         </div>
         <div className="row">
