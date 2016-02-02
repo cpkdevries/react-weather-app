@@ -8,7 +8,6 @@ var TodaysWeather = React.createClass({
     if(this.props.newSearch) {
       if(this.state.location.trim() != "") {
         this.props.newSearch(this.state.location);
-        this.refs.searchTerm.value = "";
         this.setState({location: ""})
       }
     }
@@ -40,7 +39,7 @@ var TodaysWeather = React.createClass({
           </div>
           <div className="col-xs-6">
             <div className="input-group">
-              <input type="text" className="form-control" placeholder="City" onChange={this.onChange} ref="searchTerm" />
+              <input type="text" className="form-control" placeholder="City" onChange={this.onChange} value={this.state.location} />
               <span className="input-group-addon" onClick={this.handleClick}><i className="fa fa-search"></i></span>
             </div>
           </div>

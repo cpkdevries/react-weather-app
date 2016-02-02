@@ -19584,7 +19584,6 @@ var TodaysWeather = React.createClass({
     if (this.props.newSearch) {
       if (this.state.location.trim() != "") {
         this.props.newSearch(this.state.location);
-        this.refs.searchTerm.value = "";
         this.setState({ location: "" });
       }
     }
@@ -19633,7 +19632,7 @@ var TodaysWeather = React.createClass({
           React.createElement(
             "div",
             { className: "input-group" },
-            React.createElement("input", { type: "text", className: "form-control", placeholder: "City", onChange: this.onChange, ref: "searchTerm" }),
+            React.createElement("input", { type: "text", className: "form-control", placeholder: "City", onChange: this.onChange, value: this.state.location }),
             React.createElement(
               "span",
               { className: "input-group-addon", onClick: this.handleClick },
