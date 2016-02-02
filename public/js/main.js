@@ -19478,7 +19478,11 @@ var ForecastPanel = React.createClass({
     this.callWeatherService(newLocation);
   },
   componentWillMount: function () {
-    this.callWeatherService("London,CA");
+    if (this.props.location) {
+      this.callWeatherService(this.props.location);
+    } else {
+      this.callWeatherService("London,CA");
+    }
   },
   callWeatherService: function (location) {
     // get current weather
@@ -19495,7 +19499,6 @@ var ForecastPanel = React.createClass({
     if (this.state.currentWeather.main && this.state.forecast.list) {
       // styles
       var panelHeader = {
-        background: "#ec4444",
         borderRadius: 0,
         padding: 20
       };
@@ -19510,6 +19513,11 @@ var ForecastPanel = React.createClass({
       var panelStyle = {
         marginTop: 20
       };
+      if (this.props.headerBackground) {
+        panelHeader.background = this.props.headerBackground;
+      } else {
+        panelHeader.background = "#000";
+      }
       var location = this.state.currentWeather.name + ", " + this.state.currentWeather.sys.country;
       var todaysDate = h.formatDate(new Date(this.state.currentWeather.dt * 1000));
       var tempInCelsius = Math.round(this.state.currentWeather.main.temp);
@@ -19517,6 +19525,8 @@ var ForecastPanel = React.createClass({
       var highInCelsius = Math.round(this.state.forecast.list[0].temp.max);
       var windSpeed = h.convertToKmH(this.state.currentWeather.wind.speed);
       var weatherIcon = h.getWeatherIcon(this.state.currentWeather.weather[0].icon);
+      var windDirection = h.getWindDirection(this.state.currentWeather.wind.deg);
+      var windDirectionIcon = h.getWindDirectionIcon(windDirection);
       var extendedForecastItems = this.state.forecast.list.map(function (item, key) {
         // skip today!
         if (item.dt.toString().substring(0, 5) != Math.floor(Date.now() / 1000).toString().substring(0, 5)) {
@@ -19533,27 +19543,19 @@ var ForecastPanel = React.createClass({
       });
       return React.createElement(
         'div',
-        { className: 'row' },
+        { className: 'panel panel-default', style: panelStyle },
         React.createElement(
           'div',
-          { className: 'col-sm-4 col-sm-offset-4' },
+          { className: 'panel panel-header', style: panelHeader },
+          React.createElement(TodaysWeather, { location: location, date: todaysDate, temperature: tempInCelsius, lowTemperature: lowInCelsius, highTemperature: highInCelsius, windDirection: windDirection, windSpeed: windSpeed, icon: weatherIcon, newSearch: this.handleSearch, windDirectionIcon: windDirectionIcon })
+        ),
+        React.createElement(
+          'div',
+          { className: 'panel panel-body', style: panelBodyStyle },
           React.createElement(
-            'div',
-            { className: 'panel panel-default', style: panelStyle },
-            React.createElement(
-              'div',
-              { className: 'panel panel-header', style: panelHeader },
-              React.createElement(TodaysWeather, { location: location, date: todaysDate, temperature: tempInCelsius, lowTemperature: lowInCelsius, highTemperature: highInCelsius, windDirection: h.getWindDirection(this.state.currentWeather.wind.deg), windSpeed: windSpeed, icon: weatherIcon, newSearch: this.handleSearch })
-            ),
-            React.createElement(
-              'div',
-              { className: 'panel panel-body', style: panelBodyStyle },
-              React.createElement(
-                'ul',
-                { style: noList },
-                extendedForecastItems
-              )
-            )
+            'ul',
+            { style: noList },
+            extendedForecastItems
           )
         )
       );
@@ -19619,8 +19621,9 @@ var TodaysWeather = React.createClass({
             this.props.location
           ),
           React.createElement(
-            "h5",
+            "h6",
             null,
+            "Today, ",
             this.props.date
           )
         ),
@@ -19673,7 +19676,7 @@ var TodaysWeather = React.createClass({
         React.createElement(
           "div",
           { className: "col-xs-6" },
-          React.createElement("i", { className: "wi wi-wind-direction", style: medium }),
+          React.createElement("i", { className: this.props.windDirectionIcon, style: medium }),
           " ",
           this.props.windDirection
         ),
@@ -19744,6 +19747,27 @@ var h = {
       "50d": "wi wi-day-fog"
     };
     return iconClasses[image];
+  },
+  getWindDirectionIcon: function (direction) {
+    var directions = {
+      "NORTH": "wi wi-wind wi-from-n",
+      "NORTH-NORTHEAST": "wi wi-wind wi-from-nne",
+      "NORTHEAST": "wi wi-wind wi-from-ne",
+      "EAST-NORTHEAST": "wi wi-wind wi-from-ene",
+      "EAST": "wi wi-wind wi-from-e",
+      "EAST-SOUTHEAST": "wi wi-wind wi-from-ese",
+      "SOUTHEAST": "wi wi-wind wi-from-se",
+      "SOUTH-SOUTHEAST": "wi wi-wind wi-from-sse",
+      "SOUTH": "wi wi-wind wi-from-s",
+      "SOUTH-SOUTHWEST": "wi wi-wind wi-from-ssw",
+      "SOUTHWEST": "wi wi-wind wi-from-sw",
+      "WEST-SOUTHWEST": "wi wi-wind wi-from-wsw",
+      "WEST": "wi wi-wind wi-from-w",
+      "WEST-NORTHWEST": "wi wi-wind wi-from-wnw",
+      "NORTHWEST": "wi wi-wind wi-from-nw",
+      "NORTH-NORTHWEST": "wi wi-wind wi-from-nnw"
+    };
+    return directions[direction];
   }
 };
 
@@ -19754,7 +19778,9 @@ var React = require('react');
 var ReactDOM = require('react-dom');
 var ForecastPanel = require('./components/ForecastPanel.jsx');
 
-ReactDOM.render(React.createElement(ForecastPanel, null), document.getElementById('main'));
+ReactDOM.render(React.createElement(ForecastPanel, { headerBackground: '#ec4444', location: 'Barrie,ON' }), document.getElementById('main1'));
+ReactDOM.render(React.createElement(ForecastPanel, { headerBackground: '#79b8af', location: 'Gravenhurst,ON' }), document.getElementById('main2'));
+ReactDOM.render(React.createElement(ForecastPanel, { headerBackground: '#e6834f', location: 'MontegoBay,JM' }), document.getElementById('main3'));
 
 },{"./components/ForecastPanel.jsx":161,"react":158,"react-dom":29}],165:[function(require,module,exports){
 // Use Fetch http service

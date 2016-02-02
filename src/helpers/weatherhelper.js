@@ -50,6 +50,27 @@ var h = {
       "50d": "wi wi-day-fog"
     }
     return iconClasses[image];
+  },
+  getWindDirectionIcon : function(direction) {
+    var directions = {
+      "NORTH": "wi wi-wind wi-from-n",
+      "NORTH-NORTHEAST": "wi wi-wind wi-from-nne",
+      "NORTHEAST": "wi wi-wind wi-from-ne",
+      "EAST-NORTHEAST": "wi wi-wind wi-from-ene",
+      "EAST": "wi wi-wind wi-from-e",
+      "EAST-SOUTHEAST": "wi wi-wind wi-from-ese",
+      "SOUTHEAST": "wi wi-wind wi-from-se",
+      "SOUTH-SOUTHEAST": "wi wi-wind wi-from-sse",
+      "SOUTH": "wi wi-wind wi-from-s",
+      "SOUTH-SOUTHWEST": "wi wi-wind wi-from-ssw",
+      "SOUTHWEST": "wi wi-wind wi-from-sw",
+      "WEST-SOUTHWEST": "wi wi-wind wi-from-wsw",
+      "WEST": "wi wi-wind wi-from-w",
+      "WEST-NORTHWEST": "wi wi-wind wi-from-wnw",
+      "NORTHWEST": "wi wi-wind wi-from-nw",
+      "NORTH-NORTHWEST": "wi wi-wind wi-from-nnw"
+    }
+    return directions[direction];
   }
 }
 

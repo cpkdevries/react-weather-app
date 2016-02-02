@@ -36,7 +36,7 @@ var TodaysWeather = React.createClass({
         <div className="row">
           <div className="col-xs-6">
             <h4>{this.props.location}</h4>
-            <h5>{this.props.date}</h5>
+            <h6>Today, {this.props.date}</h6>
           </div>
           <div className="col-xs-6">
             <div className="input-group">
@@ -56,7 +56,7 @@ var TodaysWeather = React.createClass({
         </div>
         <div className="row">
           <div className="col-xs-6">
-            <i className="wi wi-wind-direction" style={medium}></i> {this.props.windDirection}
+            <i className={this.props.windDirectionIcon} style={medium}></i> {this.props.windDirection}
           </div>
           <div className="col-xs-6">
             <i className="wi wi-strong-wind" style={medium}></i> {this.props.windSpeed}

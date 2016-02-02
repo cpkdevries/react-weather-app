@@ -12,7 +12,11 @@ var ForecastPanel = React.createClass({
     this.callWeatherService(newLocation);
   },
   componentWillMount : function() {
-    this.callWeatherService("London,CA");
+    if (this.props.location) {
+      this.callWeatherService(this.props.location);
+    } else {
+      this.callWeatherService("London,CA");
+    }
   },
   callWeatherService : function(location) {
     // get current weather
@@ -31,7 +35,6 @@ var ForecastPanel = React.createClass({
     if(this.state.currentWeather.main && this.state.forecast.list) {
       // styles
       var panelHeader = {
-        background: "#ec4444",
         borderRadius: 0,
         padding: 20
       };
@@ -46,6 +49,11 @@ var ForecastPanel = React.createClass({
       var panelStyle = {
         marginTop: 20
       };
+      if(this.props.headerBackground) {
+        panelHeader.background = this.props.headerBackground;
+      } else {
+        panelHeader.background = "#000";
+      }
       var location = this.state.currentWeather.name + ", " + this.state.currentWeather.sys.country;
       var todaysDate = h.formatDate(new Date(this.state.currentWeather.dt * 1000));
       var tempInCelsius = Math.round(this.state.currentWeather.main.temp);
@@ -53,6 +61,8 @@ var ForecastPanel = React.createClass({
       var highInCelsius = Math.round(this.state.forecast.list[0].temp.max);
       var windSpeed = h.convertToKmH(this.state.currentWeather.wind.speed);
       var weatherIcon = h.getWeatherIcon(this.state.currentWeather.weather[0].icon);
+      var windDirection = h.getWindDirection(this.state.currentWeather.wind.deg);
+      var windDirectionIcon = h.getWindDirectionIcon(windDirection);
       var extendedForecastItems = this.state.forecast.list.map(function(item, key){
         // skip today!
         if((item.dt).toString().substring(0, 5) != (Math.floor(Date.now()/1000)).toString().substring(0, 5)) {
@@ -70,16 +80,12 @@ var ForecastPanel = React.createClass({
         }
       });
       return (
-        <div className="row">
-          <div className="col-sm-4 col-sm-offset-4">
-            <div className="panel panel-default" style={panelStyle}>
-              <div className="panel panel-header" style={panelHeader}>
-                <TodaysWeather location={location} date={todaysDate} temperature={tempInCelsius} lowTemperature={lowInCelsius} highTemperature={highInCelsius} windDirection={h.getWindDirection(this.state.currentWeather.wind.deg)} windSpeed={windSpeed} icon={weatherIcon} newSearch={this.handleSearch} />
-              </div>
-              <div className="panel panel-body" style={panelBodyStyle}>
-                <ul style={noList}>{extendedForecastItems}</ul>
-              </div>
-            </div>
+        <div className="panel panel-default" style={panelStyle}>
+          <div className="panel panel-header" style={panelHeader}>
+            <TodaysWeather location={location} date={todaysDate} temperature={tempInCelsius} lowTemperature={lowInCelsius} highTemperature={highInCelsius} windDirection={windDirection} windSpeed={windSpeed} icon={weatherIcon} newSearch={this.handleSearch} windDirectionIcon={windDirectionIcon} />
+          </div>
+          <div className="panel panel-body" style={panelBodyStyle}>
+            <ul style={noList}>{extendedForecastItems}</ul>
           </div>
         </div>
       );
